@@ -78,7 +78,10 @@ SENSORS: tuple[EtollSensorDescription, ...] = (
         translation_key="balance",
         name="Account balance",
         device_class=SensorDeviceClass.MONETARY,
-        state_class=SensorStateClass.TOTAL,
+        # Balance is a snapshot of present-time account state; it can go up
+        # (top-ups) and down (tolls/fees), so MEASUREMENT is the right class.
+        # TOTAL is reserved for cumulative sums that pair with a last_reset.
+        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement="AUD",
         value_fn=lambda d: d.account.balance,
         attributes_fn=_balance_attrs,
