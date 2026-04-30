@@ -448,6 +448,49 @@ def sum_tolls(entries: list[ActivityEntry], start: datetime, end: datetime) -> f
     return round(total, 2)
 
 
+def compute_yearly_rebate(
+    entries: list[ActivityEntry],
+    year_start: datetime,
+    year_end: datetime,
+    *,
+    weekly_threshold: float = 60.0,
+    weekly_upper_cap: float = 400.0,
+    yearly_rebate_cap: float = 5000.0,
+) -> float:
+    """Sum claimable rebate for every Mon–Sun week that overlaps this year.
+
+    For each week: claimable = min(max(0, weekly_spend - threshold), upper_cap - threshold).
+    The result is further capped at yearly_rebate_cap.
+    """
+    year_entries = [
+        e for e in entries
+        if e.is_toll and e.posted_at is not None
+        and year_start <= (e.posted_at if e.posted_at.tzinfo is None else e.posted_at.replace(tzinfo=None)) < year_end
+    ]
+    if not year_entries:
+        return 0.0
+
+    # Collect all Mon–Sun week starts that appear in the year's toll entries.
+    week_starts: set[datetime] = set()
+    for e in year_entries:
+        ts = e.posted_at if e.posted_at.tzinfo is None else e.posted_at.replace(tzinfo=None)
+        week_start = datetime.combine(
+            (ts - timedelta(days=ts.weekday())).date(),
+            datetime.min.time(),
+        )
+        week_starts.add(week_start)
+
+    total_rebate = 0.0
+    max_weekly_rebate = weekly_upper_cap - weekly_threshold
+    for ws in week_starts:
+        we = ws + timedelta(days=7)
+        weekly_spend = sum_tolls(entries, ws, we)
+        claimable = min(max(0.0, weekly_spend - weekly_threshold), max_weekly_rebate)
+        total_rebate += claimable
+
+    return round(min(total_rebate, yearly_rebate_cap), 2)
+
+
 def latest_toll(entries: list[ActivityEntry]) -> ActivityEntry | None:
     """Return the most recent toll event (None if no trips in `entries`)."""
     candidates = [e for e in entries if e.is_toll and e.posted_at]
@@ -473,6 +516,7 @@ __all__ = [
     "EtollError",
     "EtollSessionExpired",
     "Session",
+    "compute_yearly_rebate",
     "latest_toll",
     "sum_tolls",
     "utc_now",

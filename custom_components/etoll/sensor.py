@@ -48,9 +48,19 @@ def _last_toll_attrs(data: EtollData) -> dict[str, Any]:
 def _weekly_attrs(data: EtollData) -> dict[str, Any]:
     return {
         "weekly_cap_aud": data.weekly_cap,
+        "weekly_upper_cap_aud": data.weekly_upper_cap,
         "weekly_excess_aud": data.weekly_excess,
+        "weekly_claimable_aud": data.weekly_claimable,
         "trip_count": data.weekly_trip_count,
         "rebate_eligible": data.rebate_eligible,
+    }
+
+
+def _yearly_rebate_attrs(data: EtollData) -> dict[str, Any]:
+    return {
+        "yearly_rebate_cap_aud": data.yearly_rebate_cap,
+        "yearly_accrued_rebate_aud": data.yearly_accrued_rebate,
+        "yearly_rebate_remaining_aud": data.yearly_rebate_remaining,
     }
 
 
@@ -105,6 +115,39 @@ SENSORS: tuple[EtollSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement="AUD",
         value_fn=lambda d: d.weekly_excess,
+    ),
+    EtollSensorDescription(
+        key="weekly_claimable_rebate",
+        translation_key="weekly_claimable_rebate",
+        name="Weekly claimable rebate",
+        icon="mdi:cash-check",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        native_unit_of_measurement="AUD",
+        value_fn=lambda d: d.weekly_claimable,
+        attributes_fn=_weekly_attrs,
+    ),
+    EtollSensorDescription(
+        key="yearly_accrued_rebate",
+        translation_key="yearly_accrued_rebate",
+        name="Yearly accrued rebate",
+        icon="mdi:cash-plus",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        native_unit_of_measurement="AUD",
+        value_fn=lambda d: d.yearly_accrued_rebate,
+        attributes_fn=_yearly_rebate_attrs,
+    ),
+    EtollSensorDescription(
+        key="yearly_rebate_remaining",
+        translation_key="yearly_rebate_remaining",
+        name="Yearly rebate remaining",
+        icon="mdi:cash-minus",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="AUD",
+        value_fn=lambda d: d.yearly_rebate_remaining,
+        attributes_fn=_yearly_rebate_attrs,
     ),
     EtollSensorDescription(
         key="yearly_spend",
