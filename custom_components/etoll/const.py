@@ -23,6 +23,17 @@ MIN_SCAN_INTERVAL_MINUTES = 15  # be a friendly citizen — NSW backend is share
 # Options if/when the scheme changes.
 DEFAULT_WEEKLY_CAP_AUD = 60.0
 
+# Toll spend above this weekly ceiling earns no additional rebate.
+# The claimable rebate per week is min(max(0, spend - lower), upper - lower).
+DEFAULT_WEEKLY_UPPER_CAP_AUD = 400.0
+MAX_WEEKLY_REBATE_AUD = DEFAULT_WEEKLY_UPPER_CAP_AUD - DEFAULT_WEEKLY_CAP_AUD  # 340.0
+
+# Maximum total rebate claimable across the whole scheme year.
+DEFAULT_YEARLY_REBATE_CAP_AUD = 5000.0
+
+CONF_WEEKLY_UPPER_CAP = "weekly_upper_cap"
+CONF_YEARLY_REBATE_CAP = "yearly_rebate_cap"
+
 # How many activity rows the coordinator pulls each refresh. Most users will
 # have <50 rows per fortnight so 50 covers a whole week comfortably; the
 # integration falls back to multi-page fetches at first start to populate

@@ -21,6 +21,7 @@ from .client import (
     EtollAuthError,
     EtollClient,
     EtollError,
+    compute_yearly_rebate,
     latest_toll,
     sum_tolls,
     week_bounds,
@@ -32,8 +33,12 @@ from .const import (
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL_MINUTES,
     CONF_WEEKLY_CAP,
+    CONF_WEEKLY_UPPER_CAP,
+    CONF_YEARLY_REBATE_CAP,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_WEEKLY_CAP_AUD,
+    DEFAULT_WEEKLY_UPPER_CAP_AUD,
+    DEFAULT_YEARLY_REBATE_CAP_AUD,
     DOMAIN,
     INITIAL_FETCH_MAX_PAGES,
     RECENT_ACTIVITY_PAGE_SIZE,
@@ -51,8 +56,13 @@ class EtollData:
     weekly_spend: float
     yearly_spend: float
     weekly_cap: float
+    weekly_upper_cap: float
     weekly_excess: float
+    weekly_claimable: float
     rebate_eligible: bool
+    yearly_rebate_cap: float
+    yearly_accrued_rebate: float
+    yearly_rebate_remaining: float
     last_toll: ActivityEntry | None
     weekly_trip_count: int
     yearly_trip_count: int
@@ -98,6 +108,24 @@ class EtollCoordinator(DataUpdateCoordinator[EtollData]):
             self._entry.options.get(
                 CONF_WEEKLY_CAP,
                 self._entry.data.get(CONF_WEEKLY_CAP, DEFAULT_WEEKLY_CAP_AUD),
+            )
+        )
+
+    @property
+    def weekly_upper_cap(self) -> float:
+        return float(
+            self._entry.options.get(
+                CONF_WEEKLY_UPPER_CAP,
+                self._entry.data.get(CONF_WEEKLY_UPPER_CAP, DEFAULT_WEEKLY_UPPER_CAP_AUD),
+            )
+        )
+
+    @property
+    def yearly_rebate_cap(self) -> float:
+        return float(
+            self._entry.options.get(
+                CONF_YEARLY_REBATE_CAP,
+                self._entry.data.get(CONF_YEARLY_REBATE_CAP, DEFAULT_YEARLY_REBATE_CAP_AUD),
             )
         )
 
@@ -162,7 +190,16 @@ class EtollCoordinator(DataUpdateCoordinator[EtollData]):
         weekly_spend = sum_tolls(all_activity, week_start, week_end)
         yearly_spend = sum_tolls(all_activity, year_start, year_end)
         cap = self.weekly_cap
+        upper_cap = self.weekly_upper_cap
+        yearly_cap = self.yearly_rebate_cap
         excess = round(max(0.0, weekly_spend - cap), 2)
+        claimable = round(min(excess, upper_cap - cap), 2)
+        yearly_rebate = compute_yearly_rebate(
+            all_activity, year_start, year_end,
+            weekly_threshold=cap,
+            weekly_upper_cap=upper_cap,
+            yearly_rebate_cap=yearly_cap,
+        )
         last = latest_toll(all_activity)
 
         weekly_trip_count = sum(
@@ -186,8 +223,13 @@ class EtollCoordinator(DataUpdateCoordinator[EtollData]):
             weekly_spend=weekly_spend,
             yearly_spend=yearly_spend,
             weekly_cap=cap,
+            weekly_upper_cap=upper_cap,
             weekly_excess=excess,
-            rebate_eligible=excess > 0,
+            weekly_claimable=claimable,
+            rebate_eligible=claimable > 0 and yearly_rebate < yearly_cap,
+            yearly_rebate_cap=yearly_cap,
+            yearly_accrued_rebate=yearly_rebate,
+            yearly_rebate_remaining=round(max(0.0, yearly_cap - yearly_rebate), 2),
             last_toll=last,
             weekly_trip_count=weekly_trip_count,
             yearly_trip_count=yearly_trip_count,

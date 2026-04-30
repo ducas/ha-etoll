@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components"
 
 from etoll.client import (  # noqa: E402  (import after sys.path tweak)
     EtollClient,
+    compute_yearly_rebate,
     latest_toll,
     sum_tolls,
     week_bounds,
@@ -62,10 +63,18 @@ async def main() -> int:
 
         print()
         print(f"Activity rows fetched: {len(activity)}")
-        print(f"Tolls this week  ({wstart:%Y-%m-%d} → {wend:%Y-%m-%d}): "
-              f"${sum_tolls(activity, wstart, wend):.2f}")
+        weekly_spend = sum_tolls(activity, wstart, wend)
+        weekly_excess = max(0.0, weekly_spend - 60.0)
+        weekly_claimable = min(weekly_excess, 340.0)
+        yearly_rebate = compute_yearly_rebate(activity, ystart, yend)
+
+        print(f"Tolls this week  ({wstart:%Y-%m-%d} → {wend:%Y-%m-%d}): ${weekly_spend:.2f}")
+        print(f"  Excess over $60 cap:     ${weekly_excess:.2f}")
+        print(f"  Claimable this week:     ${weekly_claimable:.2f}  (capped at $340)")
         print(f"Tolls this year  ({ystart:%Y-%m-%d} → {yend:%Y-%m-%d}): "
               f"${sum_tolls(activity, ystart, yend):.2f}")
+        print(f"  Yearly rebate accrued:   ${yearly_rebate:.2f}  (cap $5,000)")
+        print(f"  Yearly rebate remaining: ${max(0.0, 5000.0 - yearly_rebate):.2f}")
 
         last = latest_toll(activity)
         if last:
