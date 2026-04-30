@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NSW E-Toll account",
+        "description": "Sign in with your myetoll.transport.nsw.gov.au credentials. The integration polls activity periodically and exposes balance, weekly/yearly spend, and rebate-eligibility sensors.",
+        "data": {
+          "email": "Email or account number",
+          "password": "Password",
+          "scan_interval_minutes": "Refresh interval (minutes)",
+          "weekly_cap": "Weekly toll cap for rebate (AUD)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate NSW E-Toll",
+        "description": "Your stored credentials no longer work. Please re-enter them to keep the integration running.",
+        "data": {
+          "email": "Email or account number",
+          "password": "Password",
+          "scan_interval_minutes": "Refresh interval (minutes)",
+          "weekly_cap": "Weekly toll cap for rebate (AUD)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "cannot_connect": "Could not reach the eToll API. Check your network and try again.",
+      "unknown": "Unexpected error. See the Home Assistant log for details."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "reauth_successful": "Re-authentication succeeded."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "NSW E-Toll options",
+        "data": {
+          "scan_interval_minutes": "Refresh interval (minutes)",
+          "weekly_cap": "Weekly toll cap for rebate (AUD)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "balance": { "name": "Account balance" },
+      "weekly_spend": { "name": "Toll spend this week" },
+      "weekly_excess": { "name": "Weekly cap excess" },
+      "yearly_spend": { "name": "Toll spend this year" },
+      "trips_this_week": { "name": "Trips this week" },
+      "trips_this_year": { "name": "Trips this year" },
+      "last_trip_amount": { "name": "Last trip amount" },
+      "last_trip_at": { "name": "Last trip at" },
+      "last_balance_update": { "name": "Last balance update" }
+    },
+    "binary_sensor": {
+      "rebate_eligible": { "name": "Rebate eligible (this week)" }
+    }
+  }
+}

@@ -1,0 +1,83 @@
+"""Standalone smoke test for the eToll client.
+
+Run from the project root with your credentials in env vars so we don't bake
+them into the file:
+
+    ETOLL_EMAIL='you@example.com' ETOLL_PASSWORD='...' \
+        python examples/test_client.py
+
+The script prints account balance plus week/year toll totals, mirroring what
+the HA integration will surface as sensors. Useful for verifying the API
+contract before installing the integration on a live HA instance.
+"""
+from __future__ import annotations
+
+import asyncio
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Allow running without installing — add the custom_components dir to the path.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "custom_components"))
+
+from etoll.client import (  # noqa: E402  (import after sys.path tweak)
+    EtollClient,
+    latest_toll,
+    sum_tolls,
+    week_bounds,
+    year_bounds,
+)
+
+
+async def main() -> int:
+    email = os.environ.get("ETOLL_EMAIL")
+    password = os.environ.get("ETOLL_PASSWORD")
+    if not email or not password:
+        print("Set ETOLL_EMAIL and ETOLL_PASSWORD env vars.", file=sys.stderr)
+        return 2
+
+    async with EtollClient(email=email, password=password) as client:
+        await client.authenticate()
+        account = await client.get_default_account()
+        full = await client.get_account(account.cod_account)
+
+        print(f"Account:      {full.cod_account}")
+        print(f"Balance:      ${full.balance:.2f}")
+        print(f"Last update:  {full.last_balance_update}")
+        if full.low_balance_threshold:
+            print(f"Low balance:  ${full.low_balance_threshold:.2f}")
+        if full.top_up_amount:
+            print(f"Top-up size:  ${full.top_up_amount:.2f}")
+
+        # Pull a generous slice of activity so YTD math is meaningful even on
+        # a fresh run.
+        activity = await client.get_recent_activity(
+            account.cod_account, max_pages=10, page_size=50
+        )
+
+        now = datetime.now()
+        wstart, wend = week_bounds(now)
+        ystart, yend = year_bounds(now)
+
+        print()
+        print(f"Activity rows fetched: {len(activity)}")
+        print(f"Tolls this week  ({wstart:%Y-%m-%d} → {wend:%Y-%m-%d}): "
+              f"${sum_tolls(activity, wstart, wend):.2f}")
+        print(f"Tolls this year  ({ystart:%Y-%m-%d} → {yend:%Y-%m-%d}): "
+              f"${sum_tolls(activity, ystart, yend):.2f}")
+
+        last = latest_toll(activity)
+        if last:
+            print()
+            print("Most recent trip:")
+            print(f"  When:    {last.posted_at}")
+            print(f"  Amount:  ${last.gross_amount:.2f}")
+            print(f"  Where:   {last.plaza_description or last.plaza_name}")
+            print(f"  Carrier: {last.concession_label or last.concession}")
+
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

@@ -1,0 +1,7 @@
+{
+  "name": "NSW E-Toll",
+  "render_readme": true,
+  "country": ["AU"],
+  "homeassistant": "2024.4.0",
+  "zip_release": false
+}

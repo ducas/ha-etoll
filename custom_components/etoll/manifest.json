@@ -1,0 +1,13 @@
+{
+  "domain": "etoll",
+  "name": "NSW E-Toll",
+  "version": "0.1.0",
+  "documentation": "https://github.com/ducas/ha-etoll",
+  "issue_tracker": "https://github.com/ducas/ha-etoll/issues",
+  "codeowners": ["@ducas"],
+  "config_flow": true,
+  "iot_class": "cloud_polling",
+  "integration_type": "service",
+  "dependencies": [],
+  "requirements": ["aiohttp>=3.8.0"]
+}
