@@ -173,13 +173,21 @@ class EtollCoordinator(DataUpdateCoordinator[EtollData]):
 
         account = await self._client.get_account(self._account_id)
 
-        # First run: backfill enough pages to support YTD totals. Subsequent
-        # runs only re-fetch enough to find new entries.
+        # Compute year start before fetching so we can pass it to the searcher.
+        now_for_fetch = datetime.now()
+        ytd_start = datetime(now_for_fetch.year, 1, 1)
+
         if self._first_run:
-            entries = await self._client.get_recent_activity(
+            # Use the searcher endpoint for the initial YTD backfill. The
+            # regular account-activity endpoint is limited to the current
+            # quarter (~55 rows); the searcher accepts an explicit date
+            # range and returns the full year's data.
+            entries = await self._client.search_account_activity(
                 self._account_id,
-                max_pages=INITIAL_FETCH_MAX_PAGES,
+                start=ytd_start,
+                end=now_for_fetch,
                 page_size=RECENT_ACTIVITY_PAGE_SIZE,
+                max_pages=INITIAL_FETCH_MAX_PAGES,
             )
             self._first_run = False
         else:

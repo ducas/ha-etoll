@@ -406,6 +406,44 @@ class EtollClient:
                 break
         return all_entries
 
+    async def search_account_activity(
+        self,
+        cod_account: int,
+        *,
+        start: datetime,
+        end: datetime,
+        tag_serial: int | None = None,
+        activity_type: str = "TRIP",
+        page_size: int = 50,
+        max_pages: int = 40,
+    ) -> list[ActivityEntry]:
+        """Fetch activity using the searcher endpoint.
+
+        Unlike get_recent_activity (capped at current quarter, ~55 rows), this
+        endpoint accepts an explicit date range and returns the full history.
+        Uses 0-based Spring Pageable indexing.
+        """
+        url = f"{ACCOUNTS_BASE}/accounts/{cod_account}/account-activity/searcher"
+        all_entries: list[ActivityEntry] = []
+        for page in range(0, max_pages):
+            params: dict[str, Any] = {
+                "datEventSearchStart": start.strftime("%Y-%m-%dT%H:%M:%S"),
+                "datEventSearchEnd": end.strftime("%Y-%m-%dT%H:%M:%S"),
+                "txtLPN": "",
+                "numTagSerial": str(tag_serial) if tag_serial is not None else "",
+                "activityType": activity_type,
+                "page": page,
+                "size": page_size,
+            }
+            payload = await self._get(url, params=params)
+            content = payload.get("content", []) if isinstance(payload, dict) else []
+            total = int(payload.get("totalElements", len(content)))
+            entries = [ActivityEntry.from_response(item) for item in content]
+            all_entries.extend(entries)
+            if not entries or len(all_entries) >= total:
+                break
+        return all_entries
+
 
 async def _safe_text(resp: aiohttp.ClientResponse) -> str:
     try:

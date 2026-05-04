@@ -51,18 +51,22 @@ async def main() -> int:
         if full.top_up_amount:
             print(f"Top-up size:  ${full.top_up_amount:.2f}")
 
-        # Pull a generous slice of activity so YTD math is meaningful even on
-        # a fresh run.
-        activity = await client.get_recent_activity(
-            account.cod_account, max_pages=10, page_size=50
-        )
-
         now = datetime.now()
         wstart, wend = week_bounds(now)
         ystart, yend = year_bounds(now)
 
-        print()
-        print(f"Activity rows fetched: {len(activity)}")
+        # Use the searcher endpoint for accurate YTD figures — the regular
+        # account-activity endpoint is limited to the current quarter only.
+        print("Fetching YTD activity via searcher endpoint...")
+        activity = await client.search_account_activity(
+            account.cod_account,
+            start=ystart,
+            end=now,
+            page_size=50,
+            max_pages=40,
+        )
+
+        print(f"Activity rows fetched (YTD): {len(activity)}")
         weekly_spend = sum_tolls(activity, wstart, wend)
         weekly_excess = max(0.0, weekly_spend - 60.0)
         weekly_claimable = min(weekly_excess, 340.0)
