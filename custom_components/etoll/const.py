@@ -6,6 +6,7 @@ from datetime import timedelta
 DOMAIN = "etoll"
 MANUFACTURER = "Transport for NSW"
 MODEL = "E-Toll Account"
+MODEL_TAG = "E-Toll Tag"
 
 # Config-entry keys
 CONF_EMAIL = "email"

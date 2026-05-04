@@ -85,6 +85,30 @@ async def main() -> int:
             print(f"  Where:   {last.plaza_description or last.plaza_name}")
             print(f"  Carrier: {last.concession_label or last.concession}")
 
+        # Per-tag breakdown
+        tag_serials = sorted({
+            e.tag_serial for e in activity
+            if e.is_toll and e.tag_serial is not None
+        })
+        print()
+        print(f"Discovered {len(tag_serials)} tag serial(s): {tag_serials}")
+        for serial in tag_serials:
+            tag_activity = [e for e in activity if e.tag_serial == serial]
+            tag_weekly = sum_tolls(tag_activity, wstart, wend)
+            tag_yearly = sum_tolls(tag_activity, ystart, yend)
+            tag_rebate = compute_yearly_rebate(tag_activity, ystart, yend)
+            tag_last = latest_toll(tag_activity)
+            print()
+            print(f"  Tag {serial}:")
+            print(f"    Tolls this week:         ${tag_weekly:.2f}")
+            print(f"    Claimable this week:     ${min(max(0.0, tag_weekly - 60.0), 340.0):.2f}")
+            print(f"    Tolls this year:         ${tag_yearly:.2f}")
+            print(f"    Yearly rebate accrued:   ${tag_rebate:.2f}")
+            print(f"    Yearly rebate remaining: ${max(0.0, 5000.0 - tag_rebate):.2f}")
+            if tag_last:
+                print(f"    Last trip: {tag_last.posted_at}  ${tag_last.gross_amount:.2f}"
+                      f"  {tag_last.plaza_description or tag_last.plaza_name}")
+
         return 0
 
 

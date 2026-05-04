@@ -67,6 +67,29 @@ class EtollData:
     weekly_trip_count: int
     yearly_trip_count: int
     refreshed_at: datetime
+    tags: dict[int, "EtollTagData"]   # per-tag snapshots keyed by tag_serial
+
+
+@dataclass
+class EtollTagData:
+    """Per-tag snapshot produced alongside EtollData on every refresh."""
+
+    tag_serial: int
+    activity: list[ActivityEntry]   # toll entries for this tag only, newest first
+    weekly_spend: float
+    yearly_spend: float
+    weekly_cap: float
+    weekly_upper_cap: float
+    weekly_excess: float
+    weekly_claimable: float
+    rebate_eligible: bool
+    yearly_rebate_cap: float
+    yearly_accrued_rebate: float
+    yearly_rebate_remaining: float
+    last_toll: ActivityEntry | None
+    weekly_trip_count: int
+    yearly_trip_count: int
+    refreshed_at: datetime
 
 
 class EtollCoordinator(DataUpdateCoordinator[EtollData]):
@@ -202,6 +225,20 @@ class EtollCoordinator(DataUpdateCoordinator[EtollData]):
         )
         last = latest_toll(all_activity)
 
+        tag_serials: set[int] = {
+            e.tag_serial
+            for e in all_activity
+            if e.is_toll and e.tag_serial is not None
+        }
+        tags = {
+            serial: self._compute_tag_data(
+                serial, all_activity,
+                week_start, week_end, year_start, year_end,
+                cap, upper_cap, yearly_cap, now,
+            )
+            for serial in tag_serials
+        }
+
         weekly_trip_count = sum(
             1
             for e in all_activity
@@ -233,6 +270,61 @@ class EtollCoordinator(DataUpdateCoordinator[EtollData]):
             last_toll=last,
             weekly_trip_count=weekly_trip_count,
             yearly_trip_count=yearly_trip_count,
+            refreshed_at=now,
+            tags=tags,
+        )
+
+    def _compute_tag_data(
+        self,
+        tag_serial: int,
+        all_activity: list[ActivityEntry],
+        week_start: datetime,
+        week_end: datetime,
+        year_start: datetime,
+        year_end: datetime,
+        cap: float,
+        upper_cap: float,
+        yearly_cap: float,
+        now: datetime,
+    ) -> EtollTagData:
+        tag_activity = [e for e in all_activity if e.tag_serial == tag_serial]
+        weekly_spend = sum_tolls(tag_activity, week_start, week_end)
+        yearly_spend = sum_tolls(tag_activity, year_start, year_end)
+        excess = round(max(0.0, weekly_spend - cap), 2)
+        claimable = round(min(excess, upper_cap - cap), 2)
+        yearly_rebate = compute_yearly_rebate(
+            tag_activity, year_start, year_end,
+            weekly_threshold=cap,
+            weekly_upper_cap=upper_cap,
+            yearly_rebate_cap=yearly_cap,
+        )
+        last = latest_toll(tag_activity)
+        weekly_trips = sum(
+            1 for e in tag_activity
+            if e.is_toll and e.posted_at
+            and week_start <= _naive(e.posted_at) < week_end
+        )
+        yearly_trips = sum(
+            1 for e in tag_activity
+            if e.is_toll and e.posted_at
+            and year_start <= _naive(e.posted_at) < year_end
+        )
+        return EtollTagData(
+            tag_serial=tag_serial,
+            activity=tag_activity,
+            weekly_spend=weekly_spend,
+            yearly_spend=yearly_spend,
+            weekly_cap=cap,
+            weekly_upper_cap=upper_cap,
+            weekly_excess=excess,
+            weekly_claimable=claimable,
+            rebate_eligible=claimable > 0 and yearly_rebate < yearly_cap,
+            yearly_rebate_cap=yearly_cap,
+            yearly_accrued_rebate=yearly_rebate,
+            yearly_rebate_remaining=round(max(0.0, yearly_cap - yearly_rebate), 2),
+            last_toll=last,
+            weekly_trip_count=weekly_trips,
+            yearly_trip_count=yearly_trips,
             refreshed_at=now,
         )
 
