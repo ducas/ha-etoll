@@ -1,0 +1,41 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "PL"]
+ignore = [
+    "PLR2004",   # magic values — too noisy for rebate threshold constants
+    "PLC0415",   # inline imports — HA uses this pattern to defer heavy imports
+    "PLR0913",   # too many function arguments — several public APIs have >5 params by design
+    "PLW0108",   # lambda may be unnecessary — HA callback pattern requires lambda wrapper
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # assert is fine in tests
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "voluptuous.*"]
+ignore_missing_imports = true
+ignore_errors = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = [
+    "custom_components.etoll",
+    "custom_components.etoll.coordinator",
+    "custom_components.etoll.sensor",
+    "custom_components.etoll.binary_sensor",
+    "custom_components.etoll.config_flow",
+]
+ignore_errors = true
+follow_imports = "silent"

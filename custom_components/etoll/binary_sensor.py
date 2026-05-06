@@ -1,4 +1,5 @@
 """Binary sensor: rebate eligibility for the current week."""
+
 from __future__ import annotations
 
 import logging
@@ -47,10 +48,12 @@ async def async_setup_entry(
             return
         _LOGGER.debug("Discovered new E-Toll tag serials (binary sensor): %s", sorted(new_serials))
         _registered_tags.update(new_serials)
-        async_add_entities([
-            EtollTagRebateEligibleBinarySensor(coordinator, entry, serial)
-            for serial in sorted(new_serials)
-        ])
+        async_add_entities(
+            [
+                EtollTagRebateEligibleBinarySensor(coordinator, entry, serial)
+                for serial in sorted(new_serials)
+            ]
+        )
 
     _add_new_tag_binary_sensors()
     entry.async_on_unload(coordinator.async_add_listener(lambda: _add_new_tag_binary_sensors()))

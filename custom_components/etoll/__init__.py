@@ -5,6 +5,7 @@ The HA-only imports are deferred into the setup/unload coroutines so that
 used outside Home Assistant — for example by ``examples/test_client.py``
 which runs from a plain Python.
 """
+
 from __future__ import annotations
 
 import logging
@@ -44,9 +45,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     platforms = [Platform.SENSOR, Platform.BINARY_SENSOR]
     unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
-    coordinator: EtollCoordinator | None = hass.data.get(DOMAIN, {}).pop(
-        entry.entry_id, None
-    )
+    coordinator: EtollCoordinator | None = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     if coordinator:
         await coordinator.async_close()
     return unload_ok

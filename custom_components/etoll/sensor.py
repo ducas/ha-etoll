@@ -1,4 +1,5 @@
 """Sensor platform for the NSW E-Toll integration."""
+
 from __future__ import annotations
 
 import logging
@@ -362,9 +363,7 @@ async def async_setup_entry(
     coordinator: EtollCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     # Account-level sensors (unchanged — backward compatible).
-    async_add_entities(
-        EtollSensor(coordinator, entry, description) for description in SENSORS
-    )
+    async_add_entities(EtollSensor(coordinator, entry, description) for description in SENSORS)
 
     # Per-tag sensors: created dynamically as tag serials are discovered.
     _registered_tags: set[int] = set()
@@ -377,11 +376,13 @@ async def async_setup_entry(
             return
         _LOGGER.debug("Discovered new E-Toll tag serials: %s", sorted(new_serials))
         _registered_tags.update(new_serials)
-        async_add_entities([
-            EtollTagSensor(coordinator, entry, serial, desc)
-            for serial in sorted(new_serials)
-            for desc in TAG_SENSORS
-        ])
+        async_add_entities(
+            [
+                EtollTagSensor(coordinator, entry, serial, desc)
+                for serial in sorted(new_serials)
+                for desc in TAG_SENSORS
+            ]
+        )
 
     _add_new_tag_sensors()
     entry.async_on_unload(coordinator.async_add_listener(lambda: _add_new_tag_sensors()))
