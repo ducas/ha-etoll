@@ -1,0 +1,38 @@
+name: Bug report
+description: Something is wrong with the integration
+labels: [bug]
+body:
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "e.g. 2026.5.0"
+    validations:
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration version
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: What did you expect vs what actually happened?
+    validations:
+      required: true
+  - type: textarea
+    id: smoke_test
+    attributes:
+      label: Does the smoke test reproduce it?
+      description: |
+        Run `ETOLL_EMAIL='...' ETOLL_PASSWORD='...' python examples/test_client.py`
+        and paste the output here.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant HA logs
+      description: Enable debug logging for `custom_components.etoll` and paste relevant lines.
+      render: text

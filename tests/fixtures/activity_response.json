@@ -1,0 +1,37 @@
+{
+  "content": [
+    {
+      "codInvoicingEvent": 1001,
+      "codAccount": 1234567,
+      "txtTypeActivity": "Pre-Paid Tolling Event",
+      "indEventType": 0,
+      "indCreditEvent": false,
+      "datOccurrence": "2026-05-07T08:10:00",
+      "datEvent": "2026-05-07T08:15:00",
+      "decGrossValue": 630000,
+      "decNewAccountBalance": 4250000,
+      "txtConcession": "LCT",
+      "txtAbbrevConcession": "Lane Cove Tunnel (180)",
+      "txtNameInitialTollPlaza": "412",
+      "txtDescInitialTollPlaza": "Lane Cove North",
+      "txtVehicleClass": "Class A",
+      "numTagSerial": 98765
+    },
+    {
+      "codInvoicingEvent": 1002,
+      "codAccount": 1234567,
+      "txtTypeActivity": "Pre-Paid Account Top-up",
+      "indEventType": 3,
+      "indCreditEvent": true,
+      "datOccurrence": "2026-05-06T10:00:00",
+      "datEvent": "2026-05-06T10:00:00",
+      "decGrossValue": 5000000,
+      "decNewAccountBalance": 4880000,
+      "numTagSerial": null
+    }
+  ],
+  "totalElements": 2,
+  "totalPages": 1,
+  "number": 0,
+  "size": 50
+}

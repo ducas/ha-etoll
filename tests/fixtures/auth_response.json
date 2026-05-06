@@ -1,0 +1,7 @@
+{
+  "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.test",
+  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.refresh",
+  "userId": "12345",
+  "appId": "BISpublic",
+  "lastAccess": "2026-05-07T08:00:00"
+}

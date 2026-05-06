@@ -1,0 +1,8 @@
+{
+  "codAccount": 1234567,
+  "decBalance": 4250000,
+  "datLastBalanceUpdate": "2026-05-07T07:55:00",
+  "decLowBalance": 1000000,
+  "decTopupAmount": 5000000,
+  "txtAccountName": "Test Account"
+}
