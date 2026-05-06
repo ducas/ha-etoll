@@ -1,12 +1,9 @@
 """Tests for pure (non-HTTP) functions in client.py."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import datetime, timedelta, timezone
 
 from custom_components.etoll.client import (
-    AMOUNT_SCALE,
     ActivityEntry,
     _parse_iso,
     _scale,
@@ -165,7 +162,7 @@ class TestWeekBounds:
         assert end == datetime(2026, 5, 11)
 
     def test_tz_aware_input_is_handled(self):
-        aware = datetime(2026, 5, 6, 12, 0, 0, tzinfo=timezone.utc)
+        aware = datetime(2026, 5, 6, 12, 0, 0, tzinfo=datetime.UTC)
         start, end = week_bounds(aware)
         assert start.tzinfo is None  # result is always naive
 
@@ -325,7 +322,10 @@ class TestComputeYearlyRebate:
         year_start, year_end = self._year()
         # 20 weeks of $340 rebate each = $6800 > $5000 cap
         entries = [
-            make_toll_entry(i, 123, 400.00, datetime(2026, 1, 5) + __import__("datetime").timedelta(weeks=i))
+            make_toll_entry(
+                i, 123, 400.00,
+                datetime(2026, 1, 5) + timedelta(weeks=i),
+            )
             for i in range(20)
         ]
         result = compute_yearly_rebate(entries, year_start, year_end)
@@ -397,7 +397,9 @@ class TestLatestToll:
     def test_ignores_entries_with_none_posted_at(self):
         early = make_toll_entry(1, 123, 5.00, datetime(2026, 5, 5))
         late_no_ts = make_toll_entry(2, 123, 6.30, datetime(2026, 5, 7))
-        late_no_ts = ActivityEntry(**{**late_no_ts.__dict__, "posted_at": None, "occurred_at": None})
+        late_no_ts = ActivityEntry(
+            **{**late_no_ts.__dict__, "posted_at": None, "occurred_at": None}
+        )
         entries = [early, late_no_ts]
         result = latest_toll(entries)
         assert result is not None

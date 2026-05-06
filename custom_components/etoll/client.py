@@ -73,7 +73,7 @@ class Session:
     refresh_token: str
     user_id: str
     app_id: str
-    last_access: datetime
+    last_access: datetime | None
 
     @classmethod
     def from_response(cls, payload: dict[str, Any]) -> "Session":
@@ -91,7 +91,7 @@ class AccountSummary:
     """Subset of the /accounts/{id} payload that we surface as sensors."""
 
     cod_account: int
-    balance: float
+    balance: float | None
     last_balance_update: datetime | None
     low_balance_threshold: float | None
     top_up_amount: float | None
@@ -123,8 +123,8 @@ class ActivityEntry:
     type_label: str        # "Pre-Paid Tolling Event", "Merchant Fee", ...
     event_type: int        # 0 = toll, 1 = fee, 3 = payment
     is_credit: bool
-    occurred_at: datetime  # datOccurrence — when the toll/fee actually happened
-    posted_at: datetime    # datEvent — when the account was debited/credited
+    occurred_at: datetime | None  # datOccurrence — when the toll/fee actually happened
+    posted_at: datetime | None    # datEvent — when the account was debited/credited
     gross_amount: float    # absolute value, AUD
     signed_amount: float   # negative for debits, positive for credits
     new_balance: float | None
@@ -238,7 +238,12 @@ class EtollClient:
             self._session = aiohttp.ClientSession(timeout=self._timeout)
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object,
+    ) -> None:
         await self.close()
 
     async def close(self) -> None:

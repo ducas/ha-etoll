@@ -4,8 +4,6 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import MagicMock
 
-import pytest
-
 from custom_components.etoll.coordinator import EtollData, EtollTagData
 from custom_components.etoll.sensor import (
     SENSORS,
@@ -16,7 +14,7 @@ from custom_components.etoll.sensor import (
 from tests.conftest import make_account, make_toll_entry
 
 
-def _make_etoll_data(
+def _make_etoll_data(  # noqa: PLR0913
     *,
     balance: float = 42.50,
     weekly_spend: float = 70.0,
@@ -56,21 +54,21 @@ def _make_etoll_data(
 
 
 def _make_tag_data(tag_serial: int = 98765, **kwargs) -> EtollTagData:
-    defaults = dict(
-        weekly_spend=40.0,
-        yearly_spend=200.0,
-        weekly_cap=60.0,
-        weekly_upper_cap=400.0,
-        weekly_excess=0.0,
-        weekly_claimable=0.0,
-        rebate_eligible=False,
-        yearly_rebate_cap=5000.0,
-        yearly_accrued_rebate=0.0,
-        yearly_rebate_remaining=5000.0,
-        last_toll=None,
-        weekly_trip_count=3,
-        yearly_trip_count=20,
-    )
+    defaults = {
+        "weekly_spend": 40.0,
+        "yearly_spend": 200.0,
+        "weekly_cap": 60.0,
+        "weekly_upper_cap": 400.0,
+        "weekly_excess": 0.0,
+        "weekly_claimable": 0.0,
+        "rebate_eligible": False,
+        "yearly_rebate_cap": 5000.0,
+        "yearly_accrued_rebate": 0.0,
+        "yearly_rebate_remaining": 5000.0,
+        "last_toll": None,
+        "weekly_trip_count": 3,
+        "yearly_trip_count": 20,
+    }
     defaults.update(kwargs)
     return EtollTagData(
         tag_serial=tag_serial,
@@ -204,7 +202,9 @@ class TestEtollSensor:
     def test_all_sensors_return_none_when_no_data(self):
         for desc in SENSORS:
             sensor = _make_sensor(desc, None)
-            assert sensor.native_value is None, f"Sensor {desc.key} should return None when data is None"
+            assert sensor.native_value is None, (  # noqa: E501
+                f"Sensor {desc.key} should return None when data is None"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -265,4 +265,6 @@ class TestEtollTagSensor:
             sensor.coordinator = coordinator
             sensor.entity_description = desc
             sensor._tag_serial = 98765
-            assert sensor.native_value is None, f"Tag sensor {desc.key} should return None when tag is missing"
+            assert sensor.native_value is None, (
+                f"Tag sensor {desc.key} should return None when tag is missing"
+            )

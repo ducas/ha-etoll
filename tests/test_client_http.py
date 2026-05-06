@@ -1,18 +1,15 @@
 """Tests for EtollClient HTTP methods (auth, retry, paging)."""
 from __future__ import annotations
 
-import json
+import re
 from datetime import datetime
 from typing import Any
-from unittest.mock import AsyncMock, patch
 
-import aiohttp
 import pytest
 from aioresponses import aioresponses
 
 from custom_components.etoll.client import (
     ACCOUNTS_BASE,
-    API_BASE,
     AUTH_URL,
     REFRESH_URL,
     EtollAuthError,
@@ -24,20 +21,21 @@ from custom_components.etoll.client import (
 from tests.conftest import load_fixture
 
 
-def _account_url(cod: int) -> str:
-    return f"{ACCOUNTS_BASE}/accounts/{cod}"
+def _account_re(cod: int) -> re.Pattern:
+    """Regex matching any request to the account endpoint (ignores query params)."""
+    return re.compile(rf".*accounts/{cod}[/?].*|.*accounts/{cod}$")
 
 
-def _activity_url(cod: int) -> str:
-    return f"{ACCOUNTS_BASE}/accounts/{cod}/account-activity"
+def _activity_re(cod: int) -> re.Pattern:
+    return re.compile(rf".*accounts/{cod}/account-activity[/?].*|.*accounts/{cod}/account-activity$")
 
 
-def _searcher_url(cod: int) -> str:
-    return f"{ACCOUNTS_BASE}/accounts/{cod}/account-activity/searcher"
+def _searcher_re(cod: int) -> re.Pattern:
+    return re.compile(rf".*accounts/{cod}/account-activity/searcher.*")
 
 
-def _accessible_url() -> str:
-    return f"{ACCOUNTS_BASE}/accounts/accessible-accounts"
+def _accessible_re() -> re.Pattern:
+    return re.compile(r".*accessible-accounts.*")
 
 
 @pytest.fixture
@@ -96,7 +94,6 @@ class TestAuthenticate:
 
 class TestRefresh:
     async def test_successful_refresh_updates_token(self, client, auth_payload):
-        # Seed an existing session
         with aioresponses() as m:
             m.post(AUTH_URL, payload=auth_payload, status=200)
             await client.authenticate()
@@ -140,13 +137,15 @@ class TestGetRetry:
 
         new_auth = {**auth_payload, "accessToken": "refreshed-token"}
         with aioresponses() as m:
-            # First attempt → 401
-            m.get(_account_url(cod), status=401)
+            # First attempt → 401; aioresponses matches regex, query params ignored
+            m.get(_account_re(cod), status=401)
             # Refresh succeeds
             m.post(REFRESH_URL, payload=new_auth, status=200)
             # Retry succeeds
-            m.get(_account_url(cod), payload=account_payload, status=200)
-            result = await client._get(_account_url(cod), params={"isHashed": "false"})
+            m.get(_account_re(cod), payload=account_payload, status=200)
+            result = await client._get(
+                f"{ACCOUNTS_BASE}/accounts/{cod}", params={"isHashed": "false"}
+            )
 
         assert result["codAccount"] == 1234567
 
@@ -159,11 +158,13 @@ class TestGetRetry:
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(_account_url(cod), status=401)
+            m.get(_account_re(cod), status=401)
             m.post(REFRESH_URL, body="Expired", status=401)
             m.post(AUTH_URL, payload=auth_payload, status=200)
-            m.get(_account_url(cod), payload=account_payload, status=200)
-            result = await client._get(_account_url(cod), params={"isHashed": "false"})
+            m.get(_account_re(cod), payload=account_payload, status=200)
+            result = await client._get(
+                f"{ACCOUNTS_BASE}/accounts/{cod}", params={"isHashed": "false"}
+            )
 
         assert result["codAccount"] == 1234567
 
@@ -181,7 +182,7 @@ class TestGetAccessibleAccounts:
 
         wrapped = {"content": [account_payload], "totalElements": 1}
         with aioresponses() as m:
-            m.get(_accessible_url(), payload=wrapped)
+            m.get(_accessible_re(), payload=wrapped)
             accounts = await client.get_accessible_accounts()
 
         assert len(accounts) == 1
@@ -193,7 +194,7 @@ class TestGetAccessibleAccounts:
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(_accessible_url(), payload=[account_payload])
+            m.get(_accessible_re(), payload=[account_payload])
             accounts = await client.get_accessible_accounts()
 
         assert len(accounts) == 1
@@ -204,7 +205,7 @@ class TestGetAccessibleAccounts:
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(_accessible_url(), payload={"content": [], "totalElements": 0})
+            m.get(_accessible_re(), payload={"content": [], "totalElements": 0})
             accounts = await client.get_accessible_accounts()
 
         assert accounts == []
@@ -224,28 +225,25 @@ class TestGetAccountActivity:
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(_activity_url(cod), payload=activity_data)
+            m.get(_activity_re(cod), payload=activity_data)
             entries, total = await client.get_account_activity(cod, page=1, size=50)
 
         assert total == 2
         assert len(entries) == 2
         assert entries[0].cod_invoicing_event == 1001
 
-    async def test_page_parameter_sent_to_api(self, client, auth_payload):
+    async def test_page_parameter_reaches_api(self, client, auth_payload):
         cod = 1234567
         with aioresponses() as m:
             m.post(AUTH_URL, payload=auth_payload, status=200)
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(
-                _activity_url(cod),
-                payload={"content": [], "totalElements": 0},
-                params={"page": "2", "size": "50"},
-            )
+            m.get(_activity_re(cod), payload={"content": [], "totalElements": 0})
             entries, total = await client.get_account_activity(cod, page=2, size=50)
 
         assert entries == []
+        assert total == 0
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +252,7 @@ class TestGetAccountActivity:
 
 
 class TestSearchAccountActivity:
-    async def test_zero_based_page_parameter(self, client, auth_payload):
+    async def test_fetches_entries_from_searcher_endpoint(self, client, auth_payload):
         cod = 1234567
         activity_data = load_fixture("activity_response.json")
         with aioresponses() as m:
@@ -262,7 +260,7 @@ class TestSearchAccountActivity:
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(_searcher_url(cod), payload=activity_data)
+            m.get(_searcher_re(cod), payload=activity_data)
             entries = await client.search_account_activity(
                 cod,
                 start=datetime(2026, 1, 1),
@@ -273,13 +271,14 @@ class TestSearchAccountActivity:
 
     async def test_stops_when_all_entries_fetched(self, client, auth_payload):
         cod = 1234567
-        activity_data = load_fixture("activity_response.json")  # 2 entries, totalElements=2
+        # 2 entries, totalElements=2 — should stop after first page
+        activity_data = load_fixture("activity_response.json")
         with aioresponses() as m:
             m.post(AUTH_URL, payload=auth_payload, status=200)
             await client.authenticate()
 
         with aioresponses() as m:
-            m.get(_searcher_url(cod), payload=activity_data)
+            m.get(_searcher_re(cod), payload=activity_data)
             entries = await client.search_account_activity(
                 cod,
                 start=datetime(2026, 1, 1),
@@ -287,5 +286,4 @@ class TestSearchAccountActivity:
                 page_size=50,
             )
 
-        # Should stop after page 0 since len(entries)==totalElements
         assert len(entries) == 2

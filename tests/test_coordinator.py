@@ -5,10 +5,12 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.etoll.client import EtollAuthError, EtollError
-from custom_components.etoll.coordinator import EtollCoordinator, EtollData
-from tests.conftest import make_account, make_payment_entry, make_toll_entry
+from custom_components.etoll.coordinator import EtollCoordinator
+from tests.conftest import make_account, make_toll_entry
 
 
 # ---------------------------------------------------------------------------
@@ -292,8 +294,6 @@ class TestEtollDataComputation:
 
 class TestErrorPropagation:
     async def test_etoll_auth_error_raises_config_entry_auth_failed(self, mock_client):
-        from homeassistant.exceptions import ConfigEntryAuthFailed
-
         mock_client.get_account = AsyncMock(side_effect=EtollAuthError("bad creds"))
         coordinator = _make_coordinator(mock_client)
         coordinator._first_run = False
@@ -305,8 +305,6 @@ class TestErrorPropagation:
             await coordinator._async_update_data()
 
     async def test_etoll_error_raises_update_failed(self, mock_client):
-        from homeassistant.helpers.update_coordinator import UpdateFailed
-
         mock_client.get_account = AsyncMock(side_effect=EtollError("API down"))
         coordinator = _make_coordinator(mock_client)
         coordinator._first_run = False

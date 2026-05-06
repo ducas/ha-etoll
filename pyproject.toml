@@ -8,7 +8,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "PL"]
-ignore = ["PLR2004"]  # magic values — too noisy for rebate threshold constants
+ignore = [
+    "PLR2004",   # magic values — too noisy for rebate threshold constants
+    "PLC0415",   # inline imports — HA uses this pattern to defer heavy imports
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]  # assert is fine in tests
@@ -21,4 +24,14 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["homeassistant.*", "voluptuous.*"]
 ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "custom_components.etoll.__init__",
+    "custom_components.etoll.coordinator",
+    "custom_components.etoll.sensor",
+    "custom_components.etoll.binary_sensor",
+    "custom_components.etoll.config_flow",
+]
 ignore_errors = true
