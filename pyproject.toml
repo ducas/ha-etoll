@@ -3,7 +3,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
@@ -19,7 +19,7 @@ ignore = [
 "tests/*" = ["S101"]  # assert is fine in tests
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 
@@ -27,6 +27,7 @@ ignore_missing_imports = true
 module = ["homeassistant.*", "voluptuous.*"]
 ignore_missing_imports = true
 ignore_errors = true
+follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = [
