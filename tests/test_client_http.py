@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from typing import Any
 
+import aiohttp
 import pytest
 from aioresponses import aioresponses
 
@@ -42,8 +43,13 @@ def _accessible_re() -> re.Pattern:
 
 @pytest.fixture
 async def client():
-    async with EtollClient("test@example.com", "secret") as c:
+    # Use AsyncResolver to avoid spawning resolver threads that trip
+    # pytest-homeassistant-custom-component's verify_cleanup fixture.
+    connector = aiohttp.TCPConnector(resolver=aiohttp.AsyncResolver())
+    session = aiohttp.ClientSession(connector=connector)
+    async with EtollClient("test@example.com", "secret", session=session) as c:
         yield c
+    await session.close()
 
 
 @pytest.fixture

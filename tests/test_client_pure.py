@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from custom_components.etoll.client import (
     ActivityEntry,
@@ -162,7 +162,7 @@ class TestWeekBounds:
         assert end == datetime(2026, 5, 11)
 
     def test_tz_aware_input_is_handled(self):
-        aware = datetime(2026, 5, 6, 12, 0, 0, tzinfo=datetime.UTC)
+        aware = datetime(2026, 5, 6, 12, 0, 0, tzinfo=UTC)
         start, end = week_bounds(aware)
         assert start.tzinfo is None  # result is always naive
 
