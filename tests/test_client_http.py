@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import threading
 from datetime import datetime
 from typing import Any
 
@@ -43,13 +44,17 @@ def _accessible_re() -> re.Pattern:
 
 @pytest.fixture
 async def client():
-    # Use AsyncResolver to avoid spawning resolver threads that trip
-    # pytest-homeassistant-custom-component's verify_cleanup fixture.
     connector = aiohttp.TCPConnector(resolver=aiohttp.AsyncResolver())
     session = aiohttp.ClientSession(connector=connector)
     async with EtollClient("test@example.com", "secret", session=session) as c:
         yield c
+    threads_before = set(threading.enumerate())
     await session.close()
+    # aiohttp spawns a short-lived daemon thread (_run_safe_shutdown_loop)
+    # during connector shutdown; join it so verify_cleanup doesn't flag it.
+    for t in set(threading.enumerate()) - threads_before:
+        if t.daemon:
+            t.join(timeout=2.0)
 
 
 @pytest.fixture
