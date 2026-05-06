@@ -1,11 +1,11 @@
 """Config flow for the NSW E-Toll integration."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -95,7 +95,9 @@ class EtollConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
                 assert entry is not None
-                self.hass.config_entries.async_update_entry(entry, data={**entry.data, **user_input})
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, **user_input}
+                )
                 await self.hass.config_entries.async_reload(entry.entry_id)
                 return self.async_abort(reason="reauth_successful")
 
@@ -149,9 +151,9 @@ class EtollOptionsFlow(OptionsFlow):
                     vol.Optional(
                         CONF_SCAN_INTERVAL_MINUTES, default=defaults[CONF_SCAN_INTERVAL_MINUTES]
                     ): vol.All(int, vol.Range(min=MIN_SCAN_INTERVAL_MINUTES, max=24 * 60)),
-                    vol.Optional(
-                        CONF_WEEKLY_CAP, default=defaults[CONF_WEEKLY_CAP]
-                    ): vol.All(vol.Coerce(float), vol.Range(min=0, max=10_000)),
+                    vol.Optional(CONF_WEEKLY_CAP, default=defaults[CONF_WEEKLY_CAP]): vol.All(
+                        vol.Coerce(float), vol.Range(min=0, max=10_000)
+                    ),
                 }
             ),
         )

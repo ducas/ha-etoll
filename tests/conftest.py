@@ -1,4 +1,5 @@
 """Shared fixtures for ha-etoll tests."""
+
 from __future__ import annotations
 
 import json
@@ -10,10 +11,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.etoll.client import (
-    AccountSummary,
-    ActivityEntry,
     EVENT_TYPE_PAYMENT,
     EVENT_TYPE_TOLL,
+    AccountSummary,
+    ActivityEntry,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"

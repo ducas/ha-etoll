@@ -1,4 +1,5 @@
 """Constants for the NSW E-Toll integration."""
+
 from __future__ import annotations
 
 from datetime import timedelta

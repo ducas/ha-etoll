@@ -1,7 +1,8 @@
 """Tests for pure (non-HTTP) functions in client.py."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from custom_components.etoll.client import (
     ActivityEntry,
@@ -14,7 +15,6 @@ from custom_components.etoll.client import (
     year_bounds,
 )
 from tests.conftest import make_payment_entry, make_toll_entry
-
 
 # ---------------------------------------------------------------------------
 # _scale
@@ -207,8 +207,8 @@ class TestYearBounds:
 
 class TestSumTolls:
     def _monday_week(self):
-        start = datetime(2026, 5, 4)   # Monday
-        end = datetime(2026, 5, 11)    # next Monday
+        start = datetime(2026, 5, 4)  # Monday
+        end = datetime(2026, 5, 11)  # next Monday
         return start, end
 
     def test_empty_list(self):
@@ -246,17 +246,14 @@ class TestSumTolls:
     def test_none_posted_at_skipped(self):
         start, end = self._monday_week()
         entry = make_toll_entry(1, 123, 5.00, datetime(2026, 5, 6))
-        entry = ActivityEntry(
-            **{**entry.__dict__, "posted_at": None, "occurred_at": None}
-        )
+        entry = ActivityEntry(**{**entry.__dict__, "posted_at": None, "occurred_at": None})
         assert sum_tolls([entry], start, end) == 0.0
 
     def test_rounds_to_two_decimal_places(self):
         start, end = self._monday_week()
         # Three entries of $1/3 = 0.333... each — floating point is tricky
         entries = [
-            make_toll_entry(i, 123, round(1 / 3, 5), datetime(2026, 5, 5))
-            for i in range(1, 4)
+            make_toll_entry(i, 123, round(1 / 3, 5), datetime(2026, 5, 5)) for i in range(1, 4)
         ]
         result = sum_tolls(entries, start, end)
         assert isinstance(result, float)
@@ -313,7 +310,7 @@ class TestComputeYearlyRebate:
         # Week 1: $70 → $10 rebate
         # Week 2: $80 → $20 rebate
         entries = [
-            make_toll_entry(1, 123, 70.00, datetime(2026, 5, 6)),   # week of Mon 4 May
+            make_toll_entry(1, 123, 70.00, datetime(2026, 5, 6)),  # week of Mon 4 May
             make_toll_entry(2, 123, 80.00, datetime(2026, 5, 13)),  # week of Mon 11 May
         ]
         assert compute_yearly_rebate(entries, year_start, year_end) == 30.00
@@ -323,7 +320,9 @@ class TestComputeYearlyRebate:
         # 20 weeks of $340 rebate each = $6800 > $5000 cap
         entries = [
             make_toll_entry(
-                i, 123, 400.00,
+                i,
+                123,
+                400.00,
                 datetime(2026, 1, 5) + timedelta(weeks=i),
             )
             for i in range(20)

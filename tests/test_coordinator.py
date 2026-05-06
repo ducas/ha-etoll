@@ -1,4 +1,5 @@
 """Tests for EtollCoordinator polling logic, deduplication, and data computation."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -11,7 +12,6 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from custom_components.etoll.client import EtollAuthError, EtollError
 from custom_components.etoll.coordinator import EtollCoordinator
 from tests.conftest import make_account, make_toll_entry
-
 
 # ---------------------------------------------------------------------------
 # Helpers to build a minimal coordinator with a mocked client
@@ -235,7 +235,9 @@ class TestEtollDataComputation:
         # Build enough YTD spend to exhaust the $5000 yearly cap
         entries = [
             make_toll_entry(
-                i, 1234567, 400.00,
+                i,
+                1234567,
+                400.00,
                 datetime(2026, 1, 5) + timedelta(weeks=i),
             )
             for i in range(20)
@@ -297,9 +299,7 @@ class TestErrorPropagation:
         mock_client.get_account = AsyncMock(side_effect=EtollAuthError("bad creds"))
         coordinator = _make_coordinator(mock_client)
         coordinator._first_run = False
-        coordinator._activity_cache = {
-            1: make_toll_entry(1, 1234567, 6.30, datetime(2026, 5, 6))
-        }
+        coordinator._activity_cache = {1: make_toll_entry(1, 1234567, 6.30, datetime(2026, 5, 6))}
 
         with pytest.raises(ConfigEntryAuthFailed):
             await coordinator._async_update_data()
@@ -308,9 +308,7 @@ class TestErrorPropagation:
         mock_client.get_account = AsyncMock(side_effect=EtollError("API down"))
         coordinator = _make_coordinator(mock_client)
         coordinator._first_run = False
-        coordinator._activity_cache = {
-            1: make_toll_entry(1, 1234567, 6.30, datetime(2026, 5, 6))
-        }
+        coordinator._activity_cache = {1: make_toll_entry(1, 1234567, 6.30, datetime(2026, 5, 6))}
 
         with pytest.raises(UpdateFailed):
             await coordinator._async_update_data()

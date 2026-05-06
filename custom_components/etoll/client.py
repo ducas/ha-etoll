@@ -8,12 +8,12 @@ The endpoints were captured from the React SPA at
 https://account.myetoll.transport.nsw.gov.au — see README.md for the full
 reverse-engineering notes.
 """
+
 from __future__ import annotations
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiohttp
@@ -76,7 +76,7 @@ class Session:
     last_access: datetime | None
 
     @classmethod
-    def from_response(cls, payload: dict[str, Any]) -> "Session":
+    def from_response(cls, payload: dict[str, Any]) -> Session:
         return cls(
             access_token=payload["accessToken"],
             refresh_token=payload["refreshToken"],
@@ -98,7 +98,7 @@ class AccountSummary:
     raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_response(cls, payload: dict[str, Any]) -> "AccountSummary":
+    def from_response(cls, payload: dict[str, Any]) -> AccountSummary:
         return cls(
             cod_account=int(payload["codAccount"]),
             balance=_scale(payload.get("decBalance")),
@@ -120,24 +120,24 @@ class ActivityEntry:
 
     cod_invoicing_event: int
     cod_account: int
-    type_label: str        # "Pre-Paid Tolling Event", "Merchant Fee", ...
-    event_type: int        # 0 = toll, 1 = fee, 3 = payment
+    type_label: str  # "Pre-Paid Tolling Event", "Merchant Fee", ...
+    event_type: int  # 0 = toll, 1 = fee, 3 = payment
     is_credit: bool
     occurred_at: datetime | None  # datOccurrence — when the toll/fee actually happened
-    posted_at: datetime | None    # datEvent — when the account was debited/credited
-    gross_amount: float    # absolute value, AUD
-    signed_amount: float   # negative for debits, positive for credits
+    posted_at: datetime | None  # datEvent — when the account was debited/credited
+    gross_amount: float  # absolute value, AUD
+    signed_amount: float  # negative for debits, positive for credits
     new_balance: float | None
-    concession: str | None     # "WCX", "E-Toll Business Operations Centre"
+    concession: str | None  # "WCX", "E-Toll Business Operations Centre"
     concession_label: str | None  # "Lane Cove Tunnel (180)", "E-Toll"
-    plaza_name: str | None     # txtNameInitialTollPlaza (e.g. "412")
-    plaza_description: str | None  # txtDescInitialTollPlaza (e.g. "Lane Cove North - Lane Cove West")
+    plaza_name: str | None  # txtNameInitialTollPlaza (e.g. "412")
+    plaza_description: str | None  # txtDescInitialTollPlaza
     vehicle_class: str | None
     tag_serial: int | None
     raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_response(cls, payload: dict[str, Any]) -> "ActivityEntry":
+    def from_response(cls, payload: dict[str, Any]) -> ActivityEntry:
         gross = _scale(payload.get("decGrossValue")) or 0.0
         is_credit = bool(payload.get("indCreditEvent"))
         signed = gross if is_credit else -gross
@@ -147,8 +147,12 @@ class ActivityEntry:
             type_label=str(payload.get("txtTypeActivity") or ""),
             event_type=int(payload.get("indEventType", -1)),
             is_credit=is_credit,
-            occurred_at=_parse_iso(payload.get("datOccurrence")) or _parse_iso(payload.get("datEvent")),
-            posted_at=_parse_iso(payload.get("datEvent")) or _parse_iso(payload.get("datOccurrence")),
+            occurred_at=(
+                _parse_iso(payload.get("datOccurrence")) or _parse_iso(payload.get("datEvent"))
+            ),
+            posted_at=(
+                _parse_iso(payload.get("datEvent")) or _parse_iso(payload.get("datOccurrence"))
+            ),
             gross_amount=gross,
             signed_amount=signed,
             new_balance=_scale(payload.get("decNewAccountBalance")),
@@ -233,7 +237,7 @@ class EtollClient:
         self._timeout = timeout or DEFAULT_TIMEOUT
         self._auth: Session | None = None
 
-    async def __aenter__(self) -> "EtollClient":
+    async def __aenter__(self) -> EtollClient:
         if self._session is None:
             self._session = aiohttp.ClientSession(timeout=self._timeout)
         return self
@@ -254,7 +258,9 @@ class EtollClient:
     @property
     def session(self) -> aiohttp.ClientSession:
         if self._session is None:
-            raise RuntimeError("Use EtollClient as an async context manager or pass a ClientSession")
+            raise RuntimeError(
+                "Use EtollClient as an async context manager or pass a ClientSession"
+            )
         return self._session
 
     # ---- auth ----
@@ -400,9 +406,7 @@ class EtollClient:
         """
         all_entries: list[ActivityEntry] = []
         for page in range(1, max_pages + 1):
-            entries, total = await self.get_account_activity(
-                cod_account, page=page, size=page_size
-            )
+            entries, total = await self.get_account_activity(cod_account, page=page, size=page_size)
             for entry in entries:
                 if since is not None and entry.posted_at and entry.posted_at < since:
                     return all_entries
@@ -506,9 +510,13 @@ def compute_yearly_rebate(
     The result is further capped at yearly_rebate_cap.
     """
     year_entries = [
-        e for e in entries
-        if e.is_toll and e.posted_at is not None
-        and year_start <= (e.posted_at if e.posted_at.tzinfo is None else e.posted_at.replace(tzinfo=None)) < year_end
+        e
+        for e in entries
+        if e.is_toll
+        and e.posted_at is not None
+        and year_start
+        <= (e.posted_at if e.posted_at.tzinfo is None else e.posted_at.replace(tzinfo=None))
+        < year_end
     ]
     if not year_entries:
         return 0.0
@@ -516,7 +524,9 @@ def compute_yearly_rebate(
     # Collect all Mon–Sun week starts that appear in the year's toll entries.
     week_starts: set[datetime] = set()
     for e in year_entries:
-        ts = e.posted_at if e.posted_at.tzinfo is None else e.posted_at.replace(tzinfo=None)
+        at = e.posted_at
+        assert at is not None  # guaranteed by year_entries filter above
+        ts = at if at.tzinfo is None else at.replace(tzinfo=None)
         week_start = datetime.combine(
             (ts - timedelta(days=ts.weekday())).date(),
             datetime.min.time(),
@@ -539,11 +549,11 @@ def latest_toll(entries: list[ActivityEntry]) -> ActivityEntry | None:
     candidates = [e for e in entries if e.is_toll and e.posted_at]
     if not candidates:
         return None
-    return max(candidates, key=lambda e: e.posted_at)
+    return max(candidates, key=lambda e: e.posted_at or datetime.min)
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 __all__ = [

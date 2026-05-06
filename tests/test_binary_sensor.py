@@ -1,17 +1,16 @@
 """Tests for binary sensor entities."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from unittest.mock import MagicMock
-
-import pytest
 
 from custom_components.etoll.binary_sensor import (
     EtollTagRebateEligibleBinarySensor,
     RebateEligibleBinarySensor,
 )
 from custom_components.etoll.coordinator import EtollData, EtollTagData
-from tests.conftest import make_account, make_toll_entry
+from tests.conftest import make_account
 
 
 def _make_etoll_data(

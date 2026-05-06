@@ -1,4 +1,5 @@
 """Tests for EtollClient HTTP methods (auth, retry, paging)."""
+
 from __future__ import annotations
 
 import re
@@ -27,7 +28,8 @@ def _account_re(cod: int) -> re.Pattern:
 
 
 def _activity_re(cod: int) -> re.Pattern:
-    return re.compile(rf".*accounts/{cod}/account-activity[/?].*|.*accounts/{cod}/account-activity$")
+    base = rf"accounts/{cod}/account-activity"
+    return re.compile(rf".*{base}[/?].*|.*{base}$")
 
 
 def _searcher_re(cod: int) -> re.Pattern:

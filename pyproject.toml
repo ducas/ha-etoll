@@ -11,6 +11,8 @@ select = ["E", "F", "W", "I", "UP", "B", "C4", "PL"]
 ignore = [
     "PLR2004",   # magic values — too noisy for rebate threshold constants
     "PLC0415",   # inline imports — HA uses this pattern to defer heavy imports
+    "PLR0913",   # too many function arguments — several public APIs have >5 params by design
+    "PLW0108",   # lambda may be unnecessary — HA callback pattern requires lambda wrapper
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -28,10 +30,11 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = [
-    "custom_components.etoll.__init__",
+    "custom_components.etoll",
     "custom_components.etoll.coordinator",
     "custom_components.etoll.sensor",
     "custom_components.etoll.binary_sensor",
     "custom_components.etoll.config_flow",
 ]
 ignore_errors = true
+follow_imports = "silent"

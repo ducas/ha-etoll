@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install mypy aiohttp
-      - run: mypy custom_components/etoll/client.py custom_components/etoll/const.py
+      - run: mypy custom_components/etoll/client.py custom_components/etoll/const.py --follow-imports=silent
 
   test:
     name: Test
