@@ -30,7 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    platforms = [Platform.SENSOR, Platform.BINARY_SENSOR]
+    platforms = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
@@ -43,7 +43,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .const import DOMAIN
     from .coordinator import EtollCoordinator
 
-    platforms = [Platform.SENSOR, Platform.BINARY_SENSOR]
+    platforms = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
     unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
     coordinator: EtollCoordinator | None = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     if coordinator:
