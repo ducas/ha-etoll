@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from custom_components.etoll.button import EtollSyncButton
 from custom_components.etoll.const import DOMAIN, MANUFACTURER, MODEL
 
@@ -45,10 +43,12 @@ class TestEtollSyncButton:
         assert button._attr_unique_id == "abc123_sync"
 
     def test_name(self):
-        assert EtollSyncButton._attr_name == "Sync"
+        button = self._make_button()
+        assert button._attr_name == "Sync"
 
     def test_icon(self):
-        assert EtollSyncButton._attr_icon == "mdi:refresh"
+        button = self._make_button()
+        assert button._attr_icon == "mdi:refresh"
 
     def test_device_info_identifiers(self):
         button = self._make_button(account_id=9876543)
@@ -59,7 +59,6 @@ class TestEtollSyncButton:
         assert button._attr_device_info["manufacturer"] == MANUFACTURER
         assert button._attr_device_info["model"] == MODEL
 
-    @pytest.mark.asyncio
     async def test_async_press_calls_refresh(self):
         coordinator = _make_coordinator()
         entry = _make_entry()
