@@ -4,3 +4,4 @@ pytest-cov>=4.1
 aioresponses>=0.7.6
 pytest-homeassistant-custom-component>=0.12.49
 freezegun>=1.4
+aiodns>=3.2
