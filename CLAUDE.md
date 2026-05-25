@@ -18,9 +18,9 @@ This is a Home Assistant custom integration that polls the NSW E-Toll customer p
 ## Commands
 
 ```bash
-# Install dev dependencies
-pip install -r requirements_test.txt
-pip install ruff mypy
+# One-time setup — create venv and install all dev dependencies
+make venv
+source .venv/bin/activate
 
 # Run all CI gates (lint + typecheck + test)
 make ci

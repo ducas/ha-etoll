@@ -1,4 +1,12 @@
-.PHONY: lint typecheck test ci
+VENV = .venv
+
+.PHONY: venv lint typecheck test ci
+
+venv:
+	python3 -m venv $(VENV)
+	$(VENV)/bin/pip install --upgrade pip
+	$(VENV)/bin/pip install ruff mypy
+	$(VENV)/bin/pip install -r requirements_test.txt
 
 lint:
 	python3 -m ruff check custom_components/ tests/
